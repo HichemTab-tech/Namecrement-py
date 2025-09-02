@@ -1,0 +1,16 @@
+[project]
+name = "namecrement"
+version = "0.1.0"
+description = "A smart python utility that generates unique incremental names, preventing naming collisions by automatically appending incremental suffixes."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Hichem Taboukouyout", email = "hichem.taboukouyout@hichemtab-tech.me" }]
+requires-python = ">=3.13"
+
+[project.urls]
+Homepage = "https://github.com/HichemTab-tech/Namecrement-py"
+Repository = "https://github.com/HichemTab-tech/Namecrement-py"
+
+[build-system]
+requires = []
+build-backend = "setuptools.build_meta"
