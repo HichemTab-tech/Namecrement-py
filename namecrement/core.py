@@ -2,39 +2,48 @@ import re
 from typing import Iterable, Optional
 
 def namecrement(
-    base_name: str,
+    proposed_name: str,
     existing_names: Iterable[str],
     suffix_format: str = " (%N%)",
     starting_number: Optional[int] = None,
 ) -> str:
     """
-    Generate the next unique name by incrementing base_name using suffix_format.
-    - If starting_number is None and base_name is unused => returns base_name.
-    - Otherwise returns base_name with the first available %N%.
+    Python port of the JS namecrement:
+    - Keeps base if it's free and no starting_number is provided.
+    - Otherwise appends the smallest positive integer using suffix_format.
+    - If proposed_name already ends with the same-format suffix, strip it first.
     """
     if "%N%" not in suffix_format:
-        raise ValueError("suffix_format must include '%N%'")
+        raise ValueError('suffix_format must contain "%N%"')
 
-    existing = set(existing_names)
+    escape = re.escape
 
-    # If the user didn't force a start and base is free, keep it as-is
-    if starting_number is None and base_name not in existing:
-        return base_name
+    # Build a "(\\d+)"-style regex from the provided format
+    format_regex = escape(suffix_format).replace("%N%", r"(\d+)")
 
-    # Build a regex that matches the chosen format for THIS base_name
-    # Example: " (%N%)" -> r"^file \((\d+)\)$"
-    fmt_regex = re.escape(suffix_format).replace(r"%N%", r"(\d+)")
-    pattern = re.compile(rf"^{re.escape(base_name)}{fmt_regex}$")
+    # If proposed already ends with that suffix, drop it → base
+    # JS: /(.*)<format>$/
+    suffix_re = re.compile(rf"(.*){format_regex}$")
+    m = suffix_re.search(proposed_name)
+    base = m.group(1) if m else proposed_name
 
-    # Collect taken numbers that already match the SAME format
-    taken = set()
-    for name in existing:
-        m = pattern.match(name)
-        if m:
-            taken.add(int(m.group(1)))
+    # Match either: ^base<format>$  OR  ^base$
+    matcher = re.compile(rf"^(?:{escape(base)}{format_regex}|{escape(base)})$")
 
-    n = starting_number if starting_number is not None else 1
-    while n in taken or f"{base_name}{suffix_format.replace('%N%', str(n))}" in existing:
-        n += 1
+    # Collect used numbers; 0 means the bare base is taken
+    used: set[int] = set()
+    for name in existing_names:
+        m2 = matcher.match(name)
+        if m2:
+            used.add(int(m2.group(1)) if m2.group(1) else 0)
 
-    return f"{base_name}{suffix_format.replace('%N%', str(n))}"
+    # If the base itself is free and no explicit starting number → return base
+    if 0 not in used and starting_number is None:
+        return base
+
+    # Else find the smallest available starting from starting_number or 1
+    counter = 1 if starting_number is None else starting_number
+    while counter in used:
+        counter += 1
+
+    return f"{base}{suffix_format.replace('%N%', str(counter))}"
